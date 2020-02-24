@@ -1,0 +1,1545 @@
+Function makegraph(xvar As range, yvar As range, topcord1 As Integer, topcord2 As Integer, height As Integer, width As Integer, xname As String, yname As String)
+Dim co As Object
+Dim i As Integer
+Dim namers As String
+
+
+Set co = Sheets("graph").Shapes.AddChart2(240, xlXYScatter, topcord1, topcord2, width, height)
+'co.Select
+co.Chart.SeriesCollection.NewSeries
+co.Chart.FullSeriesCollection(1).name = xname + " vs " + yname
+co.Chart.FullSeriesCollection(1).XValues = xvar
+co.Chart.FullSeriesCollection(1).Values = yvar
+co.Chart.Axes(xlCategory, xlPrimary).HasTitle = True
+co.Chart.Axes(xlCategory, xlPrimary).AxisTitle.Characters.Text = xname
+co.Chart.Axes(xlValue, xlPrimary).HasTitle = True
+co.Chart.Axes(xlValue, xlPrimary).AxisTitle.Characters.Text = yname
+co.Chart.ChartArea.Border.Weight = xlThick
+co.Chart.ChartArea.Border.Color = vbBlack
+co.Chart.SeriesCollection(1).Trendlines.Add
+co.Chart.SeriesCollection(1).Trendlines(1).Select
+Selection.Type = xlLinear
+Selection.DisplayEquation = True
+Selection.DisplayRSquared = True
+
+
+End Function
+
+
+
+Sub analyze()
+
+
+
+Dim field As String, formation As String
+Dim well_count As Integer, i As Integer, formation_count As Integer
+
+Dim value As Variant
+Dim well As New clsWell
+Dim well_list As New Collection
+Dim well_formation_list As New Collection
+Dim well_formation_list_date As New Collection
+Dim FracVarstring As New Collection
+Dim FracVariables As New Collection
+Dim fracdate As Date
+Dim production As String
+
+
+
+
+
+field = Sheets("Analysis").Cells(12, "C")
+formation = Sheets("Analysis").Cells(12, "D")
+fracdate = Sheets("Analysis").Cells(12, "E")
+production = Sheets("analysis").Cells(12, "F")
+
+
+
+If (Worksheets("Graph").ChartObjects.count > 0) Then
+Worksheets("Graph").ChartObjects.Delete
+End If
+
+
+'Populating steady lists
+
+For i = 50 To 56
+
+FracVarstring.Add (Sheets("analysis").Cells(i, "A"))
+FracVariables.Add (Sheets("analysis").Cells(i, "B"))
+
+Next i
+
+
+
+
+'This section populates the well lists and categorized based on production methods
+
+
+If (production = "ALL") Then
+
+    For i = 1 To well_list.count
+                    
+        well_list.Remove (1)
+                    
+    Next i
+                    
+    For i = 1 To well_formation_list.count
+                    
+        well_formation_list.Remove (1)
+                    
+    Next i
+       For i = 1 To global_well_list.count
+                    
+        If (field = global_well_list.Item(i).field And global_well_list.Item(i).Frac_date > fracdate) Then
+                            
+            well_count = well_count + 1
+            well_list.Add global_well_list.Item(i)
+                            
+            If (formation = global_well_list.Item(i).formation) Then
+                            
+                formation_count = formation_count + 1
+                well_formation_list.Add global_well_list.Item(i)
+                        
+                            
+            End If
+        End If
+                    
+                        
+                    
+    Next i
+
+ElseIf (production <> "ALL") Then
+
+                For i = 1 To well_list.count
+                
+                    well_list.Remove (1)
+                
+                Next i
+                
+                For i = 1 To well_formation_list.count
+                    
+                    well_formation_list.Remove (1)
+                    
+                Next i
+                
+                
+                
+                
+                For i = 1 To global_well_list.count
+                
+                    If (field = global_well_list.Item(i).field And global_well_list.Item(i).Frac_date > fracdate And global_well_list.Item(i).Completion_method = production) Then
+                        
+                            well_count = well_count + 1
+                            well_list.Add global_well_list.Item(i)
+                        
+                        If (formation = global_well_list.Item(i).formation) Then
+                        
+                            formation_count = formation_count + 1
+                            well_formation_list.Add global_well_list.Item(i)
+                    
+                        
+                        End If
+                               
+                    End If
+
+                    Next i
+
+
+End If
+
+
+MsgBox "There are " & well_count & " horizontal wells in this field and  " & formation_count & " wells in this formation frac'ed after " & fracdate & "and produced on " & production
+
+
+
+ Sheets("Analysis").range("J13:K300").Clear
+
+ 
+value = MsgBox(Prompt:="Do you want to see wells ", _
+            Buttons:=vbYesNoCancel, Title:="ANALYSIS")
+            
+
+ 
+            
+ If (value = vbYes) Then
+ 
+
+ 
+ 'Sheets("analysis").Cells(12, "J") = "Wells in field"
+ 
+    For i = 1 To well_list.count
+        Sheets("Analysis").Cells(i + 12, "J") = well_list.Item(i).name
+    Next i
+ 
+ Sheets("analysis").Columns("J").AutoFit
+ 'Sheets("analysis").Cells(12, "L") = "Wells in formation"
+ 
+ For i = 1 To well_formation_list.count
+        Sheets("Analysis").Cells(i + 12, "K") = well_formation_list.Item(i).name
+    Next i
+ 
+ Sheets("analysis").Columns("K").AutoFit
+ 
+ ElseIf value = vbNo Then
+ 
+ 
+ 
+ Else
+ 
+ 
+ End If
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ value = MsgBox(Prompt:="Perform Analysis? ", _
+            Buttons:=vbYesNoCancel, Title:="ANALYSIS")
+ 
+ 
+ 
+ 
+ 
+ 'ANALYSIS SECTION X(
+ 
+ 
+ 
+ 
+ If (value = vbYes) Then
+ 
+ 
+ 
+ Dim welloil90, welloil180, welloil365, welloilformation90, welloilformation180, welloilformation365, o As Integer
+ 
+ 
+ '*************************************START OF OUTPUTTING STUFF********************************************
+  
+    Sheets("Analysis").range("M24:S29").Clear
+    Sheets("Analysis").range("M13:P19").Clear
+    Sheets("Analysis").range("L81:X500").Clear
+  
+ 
+ Dim wellsinformation As Integer
+ Dim y As Integer, z As Integer, x As Integer, p As Integer
+ 
+ 
+ 'THIS POPULATES THE WELL COUNT SO WE CAN HAVE A MORE CONSISTENT SPACING FOR LATER CALCULATIONS
+Dim w90, w180, w365, wf90, wf180, wf365 As Integer
+
+ For i = 1 To well_list.count
+     If (well_list.Item(i).Oil_90 > 1) Then
+        w90 = w90 + 1
+    End If
+     If (well_list.Item(i).Oil_180 > 1) Then
+        w180 = w180 + 1
+    End If
+     If (well_list.Item(i).Oil_365 > 1) Then
+        w365 = w365 + 1
+    End If
+Next i
+
+
+ For i = 1 To well_formation_list.count
+ 
+     If (well_formation_list.Item(i).Oil_90 > 1) Then
+        wf90 = wf90 + 1
+     End If
+     If (well_formation_list.Item(i).Oil_180 > 1) Then
+        wf180 = wf180 + 1
+     End If
+     If (well_formation_list.Item(i).Oil_365 > 1) Then
+         wf365 = wf365 + 1
+     End If
+Next i
+ 'MsgBox w365
+ 'MsgBox wf365
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ y = 82 + well_formation_list.count
+ z = 83 + well_formation_list.count + wf90
+ x = 84 + well_formation_list.count + wf90 + wf180
+ 'There is a bug somewhere in this code in the spaceing
+ 
+ For i = 1 To well_formation_list.count 'need to modify to count for zeros
+ 
+         wellsinformation = well_formation_list.count
+            
+            
+            Sheets("Analysis").Cells(i + 80, "L") = well_formation_list.Item(i).Frac_date
+            Sheets("Analysis").Cells(i + 80, "M") = well_formation_list.Item(i).Acid / well_list.Item(i).lateral_length
+            Sheets("Analysis").Cells(i + 80, "N") = well_formation_list.Item(i).Slkwter / well_formation_list.Item(i).lateral_length
+            Sheets("Analysis").Cells(i + 80, "O") = well_formation_list.Item(i).Proppant / well_formation_list.Item(i).lateral_length
+            Sheets("Analysis").Cells(i + 80, "P") = well_formation_list.Item(i).TVD
+            Sheets("Analysis").Cells(i + 80, "Q") = well_formation_list.Item(i).avg_rate '/ well_list.Item(i).lateral_length
+            Sheets("Analysis").Cells(i + 80, "R") = well_formation_list.Item(i).stages / well_list.Item(i).lateral_length
+            Sheets("Analysis").Cells(i + 80, "S") = well_formation_list.Item(i).stage_length
+            Sheets("Analysis").Cells(i + 80, "T") = well_formation_list.Item(i).lateral_length
+            Sheets("Analysis").Cells(i + 80, "U") = well_formation_list.Item(i).Oil_30
+            Sheets("Analysis").Cells(i + 80, "V") = well_formation_list.Item(i).Completion_method
+            Sheets("Analysis").Cells(i + 80, "W") = well_formation_list.Item(i).spacing
+            Sheets("Analysis").Cells(i + 80, "X") = well_formation_list.Item(i).well_type
+            
+            
+            
+        
+        If (well_formation_list.Item(i).Oil_90 <> 0) Then
+        
+            Sheets("Analysis").Cells(y, "L") = well_formation_list.Item(i).Frac_date
+            Sheets("Analysis").Cells(y, "M") = well_formation_list.Item(i).Acid / well_list.Item(i).lateral_length
+            Sheets("Analysis").Cells(y, "N") = well_formation_list.Item(i).Slkwter / well_formation_list.Item(i).lateral_length
+            Sheets("Analysis").Cells(y, "O") = well_formation_list.Item(i).Proppant / well_formation_list.Item(i).lateral_length
+            Sheets("Analysis").Cells(y, "P") = well_formation_list.Item(i).TVD
+            Sheets("Analysis").Cells(y, "Q") = well_formation_list.Item(i).avg_rate '/ well_list.Item(i).lateral_length
+            Sheets("Analysis").Cells(y, "R") = well_formation_list.Item(i).stages / well_list.Item(i).lateral_length
+            Sheets("Analysis").Cells(y, "S") = well_formation_list.Item(i).stage_length
+            Sheets("Analysis").Cells(y, "T") = well_formation_list.Item(i).lateral_length
+            Sheets("Analysis").Cells(y, "U") = well_formation_list.Item(i).Oil_90
+            Sheets("Analysis").Cells(y, "V") = well_formation_list.Item(i).Completion_method
+            Sheets("Analysis").Cells(y, "W") = well_formation_list.Item(i).spacing
+            Sheets("Analysis").Cells(y, "X") = well_formation_list.Item(i).well_type
+            welloilformation90 = welloilformation90 + 1
+        y = y + 1
+        
+        End If
+        
+        If (well_formation_list.Item(i).Oil_180 <> 0) Then
+        
+        Sheets("Analysis").Cells(z, "L") = well_formation_list.Item(i).Frac_date
+        Sheets("Analysis").Cells(z, "M") = well_formation_list.Item(i).Acid / well_list.Item(i).lateral_length
+        Sheets("Analysis").Cells(z, "N") = well_formation_list.Item(i).Slkwter / well_formation_list.Item(i).lateral_length
+        Sheets("Analysis").Cells(z, "O") = well_formation_list.Item(i).Proppant / well_formation_list.Item(i).lateral_length
+        Sheets("Analysis").Cells(z, "P") = well_formation_list.Item(i).TVD
+        Sheets("Analysis").Cells(z, "Q") = well_formation_list.Item(i).avg_rate '/ well_list.Item(i).lateral_length
+        Sheets("Analysis").Cells(z, "R") = well_formation_list.Item(i).stages / well_list.Item(i).lateral_length
+        Sheets("Analysis").Cells(z, "S") = well_formation_list.Item(i).stage_length
+        Sheets("Analysis").Cells(z, "T") = well_formation_list.Item(i).lateral_length
+        Sheets("Analysis").Cells(z, "U") = well_formation_list.Item(i).Oil_180
+        Sheets("Analysis").Cells(z, "V") = well_formation_list.Item(i).Completion_method
+        Sheets("Analysis").Cells(z, "W") = well_formation_list.Item(i).spacing
+        Sheets("Analysis").Cells(z, "X") = well_formation_list.Item(i).well_type
+        welloilformation180 = welloilformation180 + 1
+        z = z + 1
+        
+        End If
+        
+        
+        If (well_formation_list.Item(i).Oil_365 <> 0) Then
+        
+        Sheets("Analysis").Cells(x, "L") = well_formation_list.Item(i).Frac_date
+        Sheets("Analysis").Cells(x, "M") = well_formation_list.Item(i).Acid / well_list.Item(i).lateral_length
+        Sheets("Analysis").Cells(x, "N") = well_formation_list.Item(i).Slkwter / well_formation_list.Item(i).lateral_length
+        Sheets("Analysis").Cells(x, "O") = well_formation_list.Item(i).Proppant / well_formation_list.Item(i).lateral_length
+        Sheets("Analysis").Cells(x, "P") = well_formation_list.Item(i).TVD
+        Sheets("Analysis").Cells(x, "Q") = well_formation_list.Item(i).avg_rate '/ well_list.Item(i).lateral_length
+        Sheets("Analysis").Cells(x, "R") = well_formation_list.Item(i).stages / well_list.Item(i).lateral_length
+        Sheets("Analysis").Cells(x, "S") = well_formation_list.Item(i).stage_length
+        Sheets("Analysis").Cells(x, "T") = well_formation_list.Item(i).lateral_length
+        Sheets("Analysis").Cells(x, "U") = well_formation_list.Item(i).Oil_365
+        Sheets("Analysis").Cells(x, "V") = well_formation_list.Item(i).Completion_method
+        Sheets("Analysis").Cells(x, "W") = well_formation_list.Item(i).spacing
+        Sheets("Analysis").Cells(x, "X") = well_formation_list.Item(i).well_type
+        welloilformation365 = welloilformation365 + 1
+        x = x + 1
+        
+        End If
+        
+
+ 
+ Next i
+ 
+
+
+Dim xi, yi, zi, xii, yii, zii As Integer
+yi = y
+xi = x
+zi = z
+
+
+'**********************************************************************************WELL LIST**************************************************************************
+Sheets("analysis").range("Z81:AL600").Clear
+
+
+ y = 82 + well_list.count
+ z = 83 + well_list.count + w90
+ x = 84 + well_list.count + w90 + w180
+
+ 
+ 
+ For i = 1 To well_list.count
+ 
+         
+  
+            
+            Sheets("Analysis").Cells(i + 80, "Z") = well_list.Item(i).Frac_date
+            Sheets("Analysis").Cells(i + 80, "AA") = well_list.Item(i).Acid / well_list.Item(i).lateral_length
+            Sheets("Analysis").Cells(i + 80, "AB") = well_list.Item(i).Slkwter / well_list.Item(i).lateral_length
+            Sheets("Analysis").Cells(i + 80, "AC") = well_list.Item(i).Proppant / well_list.Item(i).lateral_length
+            Sheets("Analysis").Cells(i + 80, "AD") = well_list.Item(i).TVD
+            Sheets("Analysis").Cells(i + 80, "AE") = well_list.Item(i).avg_rate '/ well_list.Item(i).lateral_length
+            Sheets("Analysis").Cells(i + 80, "AF") = well_list.Item(i).stages / well_list.Item(i).lateral_length
+            Sheets("Analysis").Cells(i + 80, "AG") = well_list.Item(i).stage_length
+            Sheets("Analysis").Cells(i + 80, "AH") = well_list.Item(i).lateral_length
+            Sheets("Analysis").Cells(i + 80, "AI") = well_list.Item(i).Oil_30
+            Sheets("Analysis").Cells(i + 80, "AJ") = well_list.Item(i).Completion_method
+            Sheets("Analysis").Cells(i + 80, "AK") = well_list.Item(i).spacing
+            Sheets("Analysis").Cells(i + 80, "AL") = well_list.Item(i).well_type
+            
+     
+            
+           
+        
+        If (well_list.Item(i).Oil_90 <> 0) Then
+        
+            Sheets("Analysis").Cells(y, "Z") = well_list.Item(i).Frac_date
+            Sheets("Analysis").Cells(y, "AA") = well_list.Item(i).Acid / well_list.Item(i).lateral_length
+            Sheets("Analysis").Cells(y, "AB") = well_list.Item(i).Slkwter / well_list.Item(i).lateral_length
+            Sheets("Analysis").Cells(y, "AC") = well_list.Item(i).Proppant / well_list.Item(i).lateral_length
+            Sheets("Analysis").Cells(y, "AD") = well_list.Item(i).TVD
+            Sheets("Analysis").Cells(y, "AE") = well_list.Item(i).avg_rate '/ well_list.Item(i).lateral_length
+            Sheets("Analysis").Cells(y, "AF") = well_list.Item(i).stages / well_list.Item(i).lateral_length
+            Sheets("Analysis").Cells(y, "AG") = well_list.Item(i).stage_length
+            Sheets("Analysis").Cells(y, "AH") = well_list.Item(i).lateral_length
+            Sheets("Analysis").Cells(y, "AI") = well_list.Item(i).Oil_90
+            Sheets("Analysis").Cells(y, "AJ") = well_list.Item(i).Completion_method
+            Sheets("Analysis").Cells(y, "AK") = well_list.Item(i).spacing
+            Sheets("Analysis").Cells(y, "AL") = well_list.Item(i).well_type
+            welloil90 = welloil90 + 1
+            
+        y = y + 1
+        
+        End If
+        
+        If (well_list.Item(i).Oil_180 <> 0) Then
+        
+        Sheets("Analysis").Cells(z, "Z") = well_list.Item(i).Frac_date
+        Sheets("Analysis").Cells(z, "AA") = well_list.Item(i).Acid / well_list.Item(i).lateral_length
+        Sheets("Analysis").Cells(z, "AB") = well_list.Item(i).Slkwter / well_list.Item(i).lateral_length
+        Sheets("Analysis").Cells(z, "AC") = well_list.Item(i).Proppant / well_list.Item(i).lateral_length
+        Sheets("Analysis").Cells(z, "AD") = well_list.Item(i).TVD
+        Sheets("Analysis").Cells(z, "AE") = well_list.Item(i).avg_rate '/ well_list.Item(i).lateral_length
+        Sheets("Analysis").Cells(z, "AF") = well_list.Item(i).stages / well_list.Item(i).lateral_length
+        Sheets("Analysis").Cells(z, "AG") = well_list.Item(i).stage_length
+        Sheets("Analysis").Cells(z, "AH") = well_list.Item(i).lateral_length
+        Sheets("Analysis").Cells(z, "AI") = well_list.Item(i).Oil_180
+        Sheets("Analysis").Cells(z, "AJ") = well_list.Item(i).Completion_method
+        Sheets("Analysis").Cells(z, "AK") = well_list.Item(i).spacing
+        Sheets("Analysis").Cells(z, "AL") = well_list.Item(i).well_type
+         welloil180 = welloil180 + 1
+        z = z + 1
+        
+        End If
+        
+        
+        If (well_list.Item(i).Oil_365 <> 0) Then
+        
+        Sheets("Analysis").Cells(x, "Z") = well_list.Item(i).Frac_date
+        Sheets("Analysis").Cells(x, "AA") = well_list.Item(i).Acid / well_list.Item(i).lateral_length
+        Sheets("Analysis").Cells(x, "AB") = well_list.Item(i).Slkwter / well_list.Item(i).lateral_length
+        Sheets("Analysis").Cells(x, "AC") = well_list.Item(i).Proppant / well_list.Item(i).lateral_length
+        Sheets("Analysis").Cells(x, "AD") = well_list.Item(i).TVD
+        Sheets("Analysis").Cells(x, "AE") = well_list.Item(i).avg_rate '/ well_list.Item(i).lateral_length
+        Sheets("Analysis").Cells(x, "AF") = well_list.Item(i).stages / well_list.Item(i).lateral_length
+        Sheets("Analysis").Cells(x, "AG") = well_list.Item(i).stage_length
+        Sheets("Analysis").Cells(x, "AH") = well_list.Item(i).lateral_length
+        Sheets("Analysis").Cells(x, "AI") = well_list.Item(i).Oil_365
+        Sheets("Analysis").Cells(x, "AJ") = well_list.Item(i).Completion_method
+        Sheets("Analysis").Cells(x, "AK") = well_list.Item(i).spacing
+        Sheets("Analysis").Cells(x, "AL") = well_list.Item(i).well_type
+        welloil365 = welloil365 + 1
+        x = x + 1
+        
+        End If
+        
+
+ 
+ 
+ Next i
+
+
+xii = x
+yii = y
+zii = z
+
+
+
+ Sheets("analysis").Cells(23, "E") = well_list.count
+  Sheets("analysis").Cells(24, "E") = welloil90
+   Sheets("analysis").Cells(25, "E") = welloil180
+    Sheets("analysis").Cells(26, "E") = welloil365
+ 
+ Sheets("analysis").Cells(29, "E") = well_formation_list.count
+Sheets("analysis").Cells(30, "E") = welloilformation90
+Sheets("analysis").Cells(31, "E") = welloilformation180
+Sheets("analysis").Cells(32, "E") = welloilformation365
+
+
+
+
+
+'************************************************STOP THE DATA OUTPUTTING*****************************************
+
+ 
+ 
+ 
+Columns("N").AutoFit
+    
+ 
+' This populated the regression list
+
+
+Dim placeholder As Integer, phhi As Integer
+Dim Igraph As Integer
+Dim Ygraph As Integer
+Dim Hgraph As Integer
+Dim Wgraph As Integer
+Dim xgrange As range
+Dim ygrange As range
+Dim xname As String
+Dim yname As String
+
+Igraph = 50
+Ygraph = 75
+Hgraph = 250
+Wgraph = 500
+
+
+
+'On Error GoTo eh '**********************************************************************
+
+phlow = 81
+phhi = 80 + well_formation_list.count
+
+
+o = 13
+
+If (welloilformation90 > 0) Then 'this is checking whether or not we have all the cumlatives for the formation
+o = o + 1
+End If
+If (welloilformation180 > 0) Then
+o = o + 1
+End If
+If (welloilformation365 > 0) Then
+o = o + 1
+End If
+
+For i = 13 To o
+
+    If (i = 14) Then
+        
+    phlow = phhi + 2
+    phhi = yi - 1
+    
+    End If
+    
+    If (i = 15) Then
+    phlow = phhi + 2
+    phhi = zi - 1
+    
+    
+    End If
+    
+    If (i = 16) Then
+    phlow = phhi + 2
+    phhi = xi - 1
+    End If
+    
+    
+    
+    Set xgrange = range(Sheets("Analysis").Cells(phlow, 13), Sheets("Analysis").Cells(phhi, 13))
+    Set ygrange = range(Sheets("Analysis").Cells(phlow, 21), Sheets("Analysis").Cells(phhi, 21))
+    yname = Sheets("Analysis").Cells(12, i) + "(bbl)" 'Going to change nothing on this each interation
+    xname = Sheets("Analysis").Cells(13, 12) + "(bbl/ft)"
+    Call makegraph(xgrange, ygrange, Igraph, Ygraph, Hgraph, Wgraph, xname, yname)
+        Sheets("Analysis").Cells(13, i) = Application.WorksheetFunction.Pearson(Sheets("Analysis").range(Sheets("Analysis").Cells(phlow, 13), Sheets("Analysis").Cells(phhi, 13)), Sheets("Analysis").range(Sheets("Analysis").Cells(phlow, 21), Sheets("Analysis").Cells(phhi, 21)))
+    
+    Set xgrange = range(Sheets("Analysis").Cells(phlow, 14), Sheets("Analysis").Cells(phhi, 14))
+    Set ygrange = range(Sheets("Analysis").Cells(phlow, 21), Sheets("Analysis").Cells(phhi, 21))
+    yname = Sheets("Analysis").Cells(12, i) + "(bbl)"
+    xname = Sheets("Analysis").Cells(14, 12) + "(bbl/ft)"
+    Call makegraph(xgrange, ygrange, Igraph, Ygraph + 255, Hgraph, Wgraph, xname, yname)
+        Sheets("Analysis").Cells(14, i) = Application.WorksheetFunction.Pearson(Sheets("Analysis").range(Sheets("Analysis").Cells(phlow, 14), Sheets("Analysis").Cells(phhi, 14)), Sheets("Analysis").range(Sheets("Analysis").Cells(phlow, 21), Sheets("Analysis").Cells(phhi, 21)))
+    
+    
+    Set xgrange = range(Sheets("Analysis").Cells(phlow, 15), Sheets("Analysis").Cells(phhi, 15))
+    Set ygrange = range(Sheets("Analysis").Cells(phlow, 21), Sheets("Analysis").Cells(phhi, 21))
+    yname = Sheets("Analysis").Cells(12, i) + "(bbl)" 'Going to change nothing on this each interation
+    xname = Sheets("Analysis").Cells(15, 12) + "(lbs/ft)"
+    Call makegraph(xgrange, ygrange, Igraph, Ygraph + 505, Hgraph, Wgraph, xname, yname)
+        Sheets("Analysis").Cells(15, i) = Application.WorksheetFunction.Pearson(Sheets("Analysis").range(Sheets("Analysis").Cells(phlow, 15), Sheets("Analysis").Cells(phhi, 15)), Sheets("Analysis").range(Sheets("Analysis").Cells(phlow, 21), Sheets("Analysis").Cells(phhi, 21)))
+    
+    Set xgrange = range(Sheets("Analysis").Cells(phlow, 16), Sheets("Analysis").Cells(phhi, 16))
+    Set ygrange = range(Sheets("Analysis").Cells(phlow, 21), Sheets("Analysis").Cells(phhi, 21))
+    yname = Sheets("Analysis").Cells(12, i) + "(bbl)" 'Going to change nothing on this each interation
+    xname = Sheets("Analysis").Cells(16, 12) + "(ft)"
+    Call makegraph(xgrange, ygrange, Igraph, Ygraph + 755, Hgraph, Wgraph, xname, yname)
+        Sheets("Analysis").Cells(16, i) = Application.WorksheetFunction.Pearson(Sheets("Analysis").range(Sheets("Analysis").Cells(phlow, 16), Sheets("Analysis").Cells(phhi, 16)), Sheets("Analysis").range(Sheets("Analysis").Cells(phlow, 21), Sheets("Analysis").Cells(phhi, 21)))
+   
+    Set xgrange = range(Sheets("Analysis").Cells(phlow, 17), Sheets("Analysis").Cells(phhi, 17))
+    Set ygrange = range(Sheets("Analysis").Cells(phlow, 21), Sheets("Analysis").Cells(phhi, 21))
+    yname = Sheets("Analysis").Cells(12, i) + "(bbl)"  'Going to change nothing on this each interation
+    xname = Sheets("Analysis").Cells(17, 12) + "(BPM)"
+    Call makegraph(xgrange, ygrange, Igraph, Ygraph + 1005, Hgraph, Wgraph, xname, yname)
+        Sheets("Analysis").Cells(17, i) = Application.WorksheetFunction.Pearson(Sheets("Analysis").range(Sheets("Analysis").Cells(phlow, 17), Sheets("Analysis").Cells(phhi, 17)), Sheets("Analysis").range(Sheets("Analysis").Cells(phlow, 21), Sheets("Analysis").Cells(phhi, 21)))
+    
+    
+    Set xgrange = range(Sheets("Analysis").Cells(phlow, 18), Sheets("Analysis").Cells(phhi, 18))
+    Set ygrange = range(Sheets("Analysis").Cells(phlow, 21), Sheets("Analysis").Cells(phhi, 21))
+    yname = Sheets("Analysis").Cells(12, i) + "(bbl)" 'Going to change nothing on this each interation
+    xname = Sheets("Analysis").Cells(18, 12) + "(stages/ft)"
+    Call makegraph(xgrange, ygrange, Igraph, Ygraph + 1255, Hgraph, Wgraph, xname, yname)
+        Sheets("Analysis").Cells(18, i) = Application.WorksheetFunction.Pearson(Sheets("Analysis").range(Sheets("Analysis").Cells(phlow, 18), Sheets("Analysis").Cells(phhi, 18)), Sheets("Analysis").range(Sheets("Analysis").Cells(phlow, 21), Sheets("Analysis").Cells(phhi, 21)))
+    
+    
+    Set xgrange = range(Sheets("Analysis").Cells(phlow, 19), Sheets("Analysis").Cells(phhi, 19))
+    Set ygrange = range(Sheets("Analysis").Cells(phlow, 21), Sheets("Analysis").Cells(phhi, 21))
+    yname = Sheets("Analysis").Cells(12, i) + "(bbl)" 'Going to change nothing on this each interation
+    xname = Sheets("Analysis").Cells(19, 12) + "(ft)"
+    Call makegraph(xgrange, ygrange, Igraph, Ygraph + 1505, Hgraph, Wgraph, xname, yname)
+        Sheets("Analysis").Cells(19, i) = Application.WorksheetFunction.Pearson(Sheets("Analysis").range(Sheets("Analysis").Cells(phlow, 19), Sheets("Analysis").Cells(phhi, 19)), Sheets("Analysis").range(Sheets("Analysis").Cells(phlow, 21), Sheets("Analysis").Cells(phhi, 21)))
+    
+    Set xgrange = range(Sheets("Analysis").Cells(phlow, 20), Sheets("Analysis").Cells(phhi, 20))
+    Set ygrange = range(Sheets("Analysis").Cells(phlow, 21), Sheets("Analysis").Cells(phhi, 21))
+    yname = Sheets("Analysis").Cells(12, i) + "(bbl)" 'Going to change nothing on this each interation
+    xname = "Lateral Length (ft)"
+    Call makegraph(xgrange, ygrange, Igraph, Ygraph + 1755, Hgraph, Wgraph, xname, yname)
+    
+    
+    Igraph = Igraph + 505
+    
+    
+    
+   
+ 
+Next i
+ 
+ ElseIf value = vbNo Then
+ 
+ MsgBox "Thanks for testing"
+ Exit Sub
+ 
+ 
+ Else
+ 
+ 
+ End If
+ 
+ 
+ 'checking for Multicollinearity
+ 
+ 
+x = 24
+y = 13
+phlow = 81
+phhi = 80 + well_formation_list.count
+z = 13
+Dim var As Variant
+
+
+ 
+ For p = 13 To 19
+ 
+ For i = 13 To 19
+ 
+
+ 
+ var = Application.WorksheetFunction.Pearson(Sheets("Analysis").range(Sheets("Analysis").Cells(phlow, i), Sheets("Analysis").Cells(phhi, i)), Sheets("Analysis").range(Sheets("Analysis").Cells(phlow, p), Sheets("Analysis").Cells(phhi, p)))
+ Sheets("Analysis").Cells(x, y) = var ^ 2
+ y = y + 1
+ 
+ Next i
+ 
+ x = x + 1
+ y = 13
+ 
+ 
+ Next p
+ 
+ 
+Sheets("Analysis").range("M24:M30").Clear
+Sheets("Analysis").range("N25:N30").Clear
+Sheets("Analysis").range("O26:O30").Clear
+Sheets("Analysis").range("P27:P30").Clear
+Sheets("Analysis").range("Q28:Q30").Clear
+Sheets("Analysis").range("R29:R30").Clear
+Sheets("Analysis").Cells(30, "S").Clear
+
+ 
+ 
+ 
+ 
+    range("M24:S30").Select 'This section colors the multicolor section
+    Selection.FormatConditions.AddColorScale ColorScaleType:=2
+    Selection.FormatConditions(Selection.FormatConditions.count).SetFirstPriority
+    Selection.FormatConditions(1).ColorScaleCriteria(1).Type = _
+        xlConditionValueLowestValue
+    With Selection.FormatConditions(1).ColorScaleCriteria(1).FormatColor
+        .Color = 16776444
+        .TintAndShade = 0
+    End With
+    Selection.FormatConditions(1).ColorScaleCriteria(2).Type = _
+        xlConditionValueHighestValue
+    With Selection.FormatConditions(1).ColorScaleCriteria(2).FormatColor
+        .Color = 7039480
+        .TintAndShade = 0
+    End With
+ 
+ 
+ Sheets("Analysis").range("B23:C45").Clear
+ 
+ 
+ x = 23
+ 
+For p = 24 To 30
+    For i = 13 To 19
+        If (Sheets("Analysis").Cells(p, i) > 0.75) Then ' This is the limit for multi you can change whenever
+            Sheets("Analysis").Cells(x, "B") = Sheets("Analysis").Cells(23, i)
+            Sheets("Analysis").Cells(x, "C") = Sheets("Analysis").Cells(p, "L")
+            x = x + 1
+        End If
+    Next i
+Next p
+
+' Ends multi section
+
+
+
+
+
+
+'THIS NEEDS TO BE IMPROVED CURRENTLY ONLY WORKS WITH ODD NUMBERS
+
+Dim middle As Variant, k As Variant
+
+
+y = 19
+z = 13
+p = 2
+k = 15
+
+For y = 19 To 22
+ middle = WorksheetFunction.Median(Sheets("Analysis").range(Sheets("Analysis").Cells(13, y), Sheets("Analysis").Cells(19, y)))
+    For i = 13 To 19
+
+         If (Worksheets("analysis").Cells(i, y) > middle) Then
+            Worksheets("analysis").Cells(k, p) = Worksheets("analysis").Cells(i, "R")
+            Worksheets("analysis").Cells(k, p + 1) = Worksheets("analysis").Cells(i, y)
+            k = k + 1
+        End If
+     
+    Next i
+p = p + 2
+k = 15
+
+Next y
+
+ 
+ 
+ 'POPULATE the actual data
+ 
+ 
+ 
+ Dim slope As Double, intercept As Double, r As Double, slopef As Double, interceptf As Double, rf As Double
+ 
+Dim onemilef, onehalfmilef, twomilef, length, onemile, onehalfmile, twomile, lengthf As Double
+
+Dim pi As Integer, pif As Integer
+
+pi = 80 + well_list.count
+pif = 80 + well_formation_list.count
+
+
+Sheets("analysis").Cells(54, "B") = Application.WorksheetFunction.Average(Worksheets("analysis").range(Sheets("analysis").Cells(81, "P"), Sheets("analysis").Cells(pif, "P")))
+Sheets("analysis").Cells(55, "B") = Application.WorksheetFunction.Average(Worksheets("analysis").range(Sheets("analysis").Cells(81, "R"), Sheets("analysis").Cells(pif, "R")))
+Sheets("analysis").Cells(56, "B") = Application.WorksheetFunction.Average(Worksheets("analysis").range(Sheets("analysis").Cells(81, "M"), Sheets("analysis").Cells(pif, "M")))
+
+
+'THIS IS THE POPULATION FOR THE FIELD
+For i = 23 To 26
+onemilef = 0
+onehalfmilef = 0
+twomilef = 0
+
+onemile = 0
+onehalfmile = 0
+twomile = 0
+
+
+If (i = 23) Then 'This is the 30 day production
+
+
+
+    For k = 81 To pif
+        lengthf = Sheets("analysis").Cells(k, "T")
+            If (lengthf <= 6000) Then
+                onemilef = onemilef + 1
+                End If
+                If (lengthf > 6000 And lengthf < 9000) Then
+                onehalfmilef = onehalfmilef + 1
+                End If
+                If (lengthf >= 9000) Then
+                twomilef = twomilef + 1
+            End If
+    Next k
+    
+    
+  
+    
+    
+    
+    For k = 81 To pi
+        length = Sheets("analysis").Cells(k, "AH")
+            If (length <= 6000) Then
+                onemile = onemile + 1
+                End If
+                If (length > 6000 And length < 9000) Then
+                onehalfmile = onehalfmile + 1
+                End If
+                If (length >= 9000) Then
+                twomile = twomile + 1
+            End If
+    Next k
+    
+    
+    
+    slope = WorksheetFunction.Index(WorksheetFunction.LinEst(Worksheets("analysis").range(Sheets("analysis").Cells(81, 35), Sheets("analysis").Cells(pi, 35)), Worksheets("analysis").range(Sheets("analysis").Cells(81, 34), Sheets("analysis").Cells(pi, 34))), 1)
+    intercept = WorksheetFunction.Index(WorksheetFunction.LinEst(Worksheets("analysis").range(Sheets("analysis").Cells(81, 35), Sheets("analysis").Cells(pi, 35)), Worksheets("analysis").range(Sheets("analysis").Cells(81, 34), Sheets("analysis").Cells(pi, 34))), 2)
+    r = WorksheetFunction.Pearson(Worksheets("analysis").range(Sheets("analysis").Cells(81, 35), Sheets("analysis").Cells(pi, 35)), Worksheets("analysis").range(Sheets("analysis").Cells(81, 34), Sheets("analysis").Cells(pi, 34)))
+    
+    slopef = WorksheetFunction.Index(WorksheetFunction.LinEst(Worksheets("analysis").range(Sheets("analysis").Cells(81, 21), Sheets("analysis").Cells(pif, 21)), Worksheets("analysis").range(Sheets("analysis").Cells(81, 20), Sheets("analysis").Cells(pif, 20))), 1)
+    interceptf = WorksheetFunction.Index(WorksheetFunction.LinEst(Worksheets("analysis").range(Sheets("analysis").Cells(81, 21), Sheets("analysis").Cells(pif, 21)), Worksheets("analysis").range(Sheets("analysis").Cells(81, 20), Sheets("analysis").Cells(pif, 20))), 2)
+    rf = WorksheetFunction.Pearson(Worksheets("analysis").range(Sheets("analysis").Cells(81, 21), Sheets("analysis").Cells(pif, 21)), Worksheets("analysis").range(Sheets("analysis").Cells(81, 20), Sheets("analysis").Cells(pif, 20)))
+
+
+End If
+
+
+
+
+
+
+If (i = 24) Then
+
+
+
+pif = pif + 2
+pi = pi + 2
+yii = yii - 1
+yi = yi - 1
+
+
+For k = pif To yi
+        lengthf = Sheets("analysis").Cells(k, "T")
+            If (lengthf <= 6000) Then
+                onemilef = onemilef + 1
+                End If
+                If (lengthf > 6000 And lengthf < 9000) Then
+                onehalfmilef = onehalfmilef + 1
+                End If
+                If (lengthf >= 9000) Then
+                twomilef = twomilef + 1
+            End If
+    Next k
+
+
+    For k = pi To yii
+        length = Sheets("analysis").Cells(k, "AH")
+            If (length <= 6000) Then
+                onemile = onemile + 1
+                End If
+                If (length > 6000 And length < 9000) Then
+                onehalfmile = onehalfmile + 1
+                End If
+                If (length >= 9000) Then
+                twomile = twomile + 1
+            End If
+    Next k
+
+
+
+
+
+
+
+slope = WorksheetFunction.Index(WorksheetFunction.LinEst(Worksheets("analysis").range(Sheets("analysis").Cells(pi, 35), Sheets("analysis").Cells(yii, 35)), Worksheets("analysis").range(Sheets("analysis").Cells(pi, 34), Sheets("analysis").Cells(yii, 34))), 1)
+intercept = WorksheetFunction.Index(WorksheetFunction.LinEst(Worksheets("analysis").range(Sheets("analysis").Cells(pi, 35), Sheets("analysis").Cells(yii, 35)), Worksheets("analysis").range(Sheets("analysis").Cells(pi, 34), Sheets("analysis").Cells(yii, 34))), 2)
+r = WorksheetFunction.Pearson(Worksheets("analysis").range(Sheets("analysis").Cells(pi, 35), Sheets("analysis").Cells(yii, 35)), Worksheets("analysis").range(Sheets("analysis").Cells(pi, 34), Sheets("analysis").Cells(yii, 34)))
+
+
+If (welloilformation90 > 0) Then
+
+slopef = WorksheetFunction.Index(WorksheetFunction.LinEst(Worksheets("analysis").range(Sheets("analysis").Cells(pif, 21), Sheets("analysis").Cells(yi, 21)), Worksheets("analysis").range(Sheets("analysis").Cells(pif, 20), Sheets("analysis").Cells(yi, 20))), 1)
+interceptf = WorksheetFunction.Index(WorksheetFunction.LinEst(Worksheets("analysis").range(Sheets("analysis").Cells(pif, 21), Sheets("analysis").Cells(yi, 21)), Worksheets("analysis").range(Sheets("analysis").Cells(pif, 20), Sheets("analysis").Cells(yi, 20))), 2)
+rf = WorksheetFunction.Pearson(Worksheets("analysis").range(Sheets("analysis").Cells(pif, 21), Sheets("analysis").Cells(yi, 21)), Worksheets("analysis").range(Sheets("analysis").Cells(pif, 20), Sheets("analysis").Cells(yi, 20)))
+
+End If
+
+
+End If
+
+
+
+
+If (i = 25) Then
+
+
+
+
+
+
+yi = yi + 2
+yii = yii + 2
+zii = zii - 1
+zi = zi - 1
+
+
+
+For k = yii To zii
+        length = Sheets("analysis").Cells(k, "AH")
+            If (length <= 6000) Then
+                onemile = onemile + 1
+                End If
+                If (length > 6000 And length < 9000) Then
+                onehalfmile = onehalfmile + 1
+                End If
+                If (length >= 9000) Then
+                twomile = twomile + 1
+            End If
+Next k
+
+
+For k = yi To zi
+        lengthf = Sheets("analysis").Cells(k, "T")
+            If (lengthf <= 6000) Then
+                onemilef = onemilef + 1
+                End If
+                If (lengthf > 6000 And lengthf < 9000) Then
+                onehalfmilef = onehalfmilef + 1
+                End If
+                If (lengthf >= 9000) Then
+                twomilef = twomilef + 1
+            End If
+    Next k
+
+
+
+
+slope = WorksheetFunction.Index(WorksheetFunction.LinEst(Worksheets("analysis").range(Sheets("analysis").Cells(yii, 35), Sheets("analysis").Cells(zii, 35)), Worksheets("analysis").range(Sheets("analysis").Cells(yii, 34), Sheets("analysis").Cells(zii, 34))), 1)
+intercept = WorksheetFunction.Index(WorksheetFunction.LinEst(Worksheets("analysis").range(Sheets("analysis").Cells(yii, 35), Sheets("analysis").Cells(zii, 35)), Worksheets("analysis").range(Sheets("analysis").Cells(yii, 34), Sheets("analysis").Cells(zii, 34))), 2)
+r = WorksheetFunction.Pearson(Worksheets("analysis").range(Sheets("analysis").Cells(yii, 35), Sheets("analysis").Cells(zii, 35)), Worksheets("analysis").range(Sheets("analysis").Cells(yii, 34), Sheets("analysis").Cells(zii, 34)))
+
+If (welloilformation180 > 0) Then
+
+slopef = WorksheetFunction.Index(WorksheetFunction.LinEst(Worksheets("analysis").range(Sheets("analysis").Cells(yi, 21), Sheets("analysis").Cells(zi, 21)), Worksheets("analysis").range(Sheets("analysis").Cells(yi, 20), Sheets("analysis").Cells(zi, 20))), 1)
+interceptf = WorksheetFunction.Index(WorksheetFunction.LinEst(Worksheets("analysis").range(Sheets("analysis").Cells(yi, 21), Sheets("analysis").Cells(zi, 21)), Worksheets("analysis").range(Sheets("analysis").Cells(yi, 20), Sheets("analysis").Cells(zi, 20))), 2)
+rf = WorksheetFunction.Pearson(Worksheets("analysis").range(Sheets("analysis").Cells(yi, 21), Sheets("analysis").Cells(zi, 21)), Worksheets("analysis").range(Sheets("analysis").Cells(yi, 20), Sheets("analysis").Cells(zi, 20)))
+ End If
+ 
+
+
+End If
+
+If (i = 26) Then
+
+zi = zi + 2
+zii = zii + 2
+xii = xii - 1
+xi = xi - 1
+
+
+  For k = zii To xii
+        length = Sheets("analysis").Cells(k, "AH")
+            If (length <= 6000) Then
+                onemile = onemile + 1
+                End If
+                If (length > 6000 And length < 9000) Then
+                onehalfmile = onehalfmile + 1
+                End If
+                If (length >= 9000) Then
+                twomile = twomile + 1
+            End If
+    Next k
+
+
+
+
+For k = zi To xi
+        lengthf = Sheets("analysis").Cells(k, "T")
+            If (lengthf <= 6000) Then
+                onemilef = onemilef + 1
+                End If
+                If (lengthf > 6000 And lengthf < 9000) Then
+                onehalfmilef = onehalfmilef + 1
+                End If
+                If (lengthf >= 9000) Then
+                twomilef = twomilef + 1
+            End If
+    Next k
+
+
+
+
+slope = WorksheetFunction.Index(WorksheetFunction.LinEst(Worksheets("analysis").range(Sheets("analysis").Cells(zii, 35), Sheets("analysis").Cells(xii, 35)), Worksheets("analysis").range(Sheets("analysis").Cells(zii, 34), Sheets("analysis").Cells(xii, 34))), 1)
+intercept = WorksheetFunction.Index(WorksheetFunction.LinEst(Worksheets("analysis").range(Sheets("analysis").Cells(zii, 35), Sheets("analysis").Cells(xii, 35)), Worksheets("analysis").range(Sheets("analysis").Cells(zii, 34), Sheets("analysis").Cells(xii, 34))), 2)
+r = WorksheetFunction.Pearson(Worksheets("analysis").range(Sheets("analysis").Cells(zii, 35), Sheets("analysis").Cells(xii, 35)), Worksheets("analysis").range(Sheets("analysis").Cells(zii, 34), Sheets("analysis").Cells(xii, 34)))
+
+If (welloilformation365 > 0) Then
+
+slopef = WorksheetFunction.Index(WorksheetFunction.LinEst(Worksheets("analysis").range(Sheets("analysis").Cells(zi, 21), Sheets("analysis").Cells(xi, 21)), Worksheets("analysis").range(Sheets("analysis").Cells(zi, 20), Sheets("analysis").Cells(xi, 20))), 1)
+interceptf = WorksheetFunction.Index(WorksheetFunction.LinEst(Worksheets("analysis").range(Sheets("analysis").Cells(zi, 21), Sheets("analysis").Cells(xi, 21)), Worksheets("analysis").range(Sheets("analysis").Cells(zi, 20), Sheets("analysis").Cells(xi, 20))), 2)
+rf = WorksheetFunction.Pearson(Worksheets("analysis").range(Sheets("analysis").Cells(zi, 21), Sheets("analysis").Cells(xi, 21)), Worksheets("analysis").range(Sheets("analysis").Cells(zi, 20), Sheets("analysis").Cells(xi, 20)))
+
+End If
+
+
+End If
+
+
+If (onehalfmile = 0) Then
+
+Sheets("analysis").Cells(i, "G").Interior.ColorIndex = 3
+
+ElseIf (onehalfmile > 4) Then
+Sheets("analysis").Cells(i, "G").Interior.ColorIndex = 4
+
+Else
+
+Sheets("analysis").Cells(i, "G").Interior.ColorIndex = 6
+End If
+
+If (twomile = 0) Then
+
+Sheets("analysis").Cells(i, "H").Interior.ColorIndex = 3
+
+ElseIf (twomile > 4) Then
+
+Sheets("analysis").Cells(i, "H").Interior.ColorIndex = 4
+
+Else
+
+Sheets("analysis").Cells(i, "H").Interior.ColorIndex = 6
+End If
+
+
+
+Sheets("analysis").Cells(i, "G") = (7500 * slope + intercept) / (5000 * slope + intercept)
+Sheets("analysis").Cells(i, "H") = (10000 * slope + intercept) / (5000 * slope + intercept)
+Sheets("analysis").Cells(i, "I") = r ^ 2
+
+
+
+
+If (onehalfmilef = 0) Then
+
+Sheets("analysis").Cells(i + 6, "G").Interior.ColorIndex = 3
+
+ElseIf (onehalfmilef > 4) Then
+Sheets("analysis").Cells(i + 6, "G").Interior.ColorIndex = 4
+
+Else
+
+Sheets("analysis").Cells(i + 6, "G").Interior.ColorIndex = 6
+End If
+
+If (twomilef = 0) Then
+
+Sheets("analysis").Cells(i + 6, "H").Interior.ColorIndex = 3
+
+ElseIf (twomilef > 4) Then
+
+Sheets("analysis").Cells(i + 6, "H").Interior.ColorIndex = 4
+
+Else
+
+Sheets("analysis").Cells(i + 6, "H").Interior.ColorIndex = 6
+End If
+
+
+
+Sheets("analysis").Cells(i + 6, "G") = (7920 * slopef + interceptf) / (5000 * slopef + interceptf)
+Sheets("analysis").Cells(i + 6, "H") = (10560 * slopef + interceptf) / (5000 * slopef + interceptf)
+Sheets("analysis").Cells(i + 6, "I") = rf ^ 2
+
+
+
+
+
+
+
+Next i
+
+'*********************************MULTI LINEAR REGRESSION PART********************************************************
+
+
+
+Sheets("analysis").range("BR80:BU500").Clear
+
+
+
+
+Dim Var1S, Var2S, Var3S As String
+Dim Var1D As Variant
+Dim Var2D As Variant
+Dim Var3D As Variant
+
+Dim baseline As Variant
+Dim vstat As Variant
+
+Dim Fracvar1, Fracvar2 As Double
+
+
+
+Dim x1, x2, x3, x4, y1, Rx, Ry As range
+
+
+
+
+Dim multicolone As New Collection
+Dim multicol2 As New Collection
+Dim Linearregression As New Collection
+Dim zj As Integer
+
+
+
+
+For i = 23 To 45 'populated mult colinear for later use
+'use Azalea b3 for testing
+    
+If (IsEmpty(Sheets("analysis").Cells(i, "B")) = False) Then
+
+    
+    multicolone.Add (Sheets("analysis").Cells(i, "B"))
+    multicol2.Add (Sheets("analysis").Cells(i, "C"))
+
+End If
+
+Next i
+
+
+
+For i = 1 To 4 'colored the cells since they will have the same colors
+
+    Sheets("Analysis").Cells(i + 34, "E") = Sheets("Analysis").Cells(i + 28, "E")
+    Sheets("analysis").Cells(i + 34, "G").Interior.ColorIndex = Sheets("analysis").Cells(i + 28, "G").Interior.ColorIndex
+    Sheets("analysis").Cells(i + 34, "H").Interior.ColorIndex = Sheets("analysis").Cells(i + 28, "H").Interior.ColorIndex
+
+
+Next i
+
+
+
+
+
+y = 2
+zj = 3
+'i = 15
+For j = 1 To 4
+
+
+Var1S = Sheets("analysis").Cells(15, y)
+Var2S = Sheets("analysis").Cells(16, y)
+Var3S = Sheets("analysis").Cells(17, y)
+
+Var1D = Sheets("analysis").Cells(15, zj)
+Var2D = Sheets("analysis").Cells(16, zj)
+Var3D = Sheets("analysis").Cells(17, zj)
+
+baseline = WorksheetFunction.Min(Var1D, Var2D, Var3D)
+Set Linearregression = New Collection 'Here is where I clear the collection for the next section
+'THIS IS THIRTY CUM PREDICTION SECTION
+            
+            
+If (j = 1) Then
+p = 70
+    If (Var1D > baseline) Then 'Here I am creating a list in oder to find the three most influential variables
+        Linearregression.Add (1)
+    Else
+        Linearregression.Add (0)
+    End If
+    If (Var2D > baseline) Then
+        Linearregression.Add (1)
+    Else
+        Linearregression.Add (0)
+    End If
+    If (Var3D > baseline) Then
+        Linearregression.Add (1)
+    Else
+        Linearregression.Add (0)
+    End If
+        Linearregression.Add (1)
+pif = pif - 2
+    For z = 13 To 19
+        If (Sheets("analysis").Cells(80, z) = Var1S And Linearregression.Item(1) <> 0) Then
+            Sheets("analysis").Cells(80, p) = Sheets("analysis").Cells(80, z)
+            For k = 81 To pif
+               Sheets("analysis").Cells(k, p) = Sheets("analysis").Cells(k, z)
+            Next k
+            p = p + 1
+        End If
+        If (Sheets("analysis").Cells(80, z) = Var2S And Linearregression.Item(2) <> 0) Then
+            Sheets("analysis").Cells(80, p) = Sheets("analysis").Cells(80, z)
+            For k = 81 To pif
+                Sheets("analysis").Cells(k, p) = Sheets("analysis").Cells(k, z)
+            Next k
+            p = p + 1
+            End If
+        If (Sheets("analysis").Cells(80, z) = Var3S And Linearregression.Item(3) <> 0) Then
+            Sheets("analysis").Cells(80, p) = Sheets("analysis").Cells(80, z)
+            For k = 81 To pif
+                Sheets("analysis").Cells(k, p) = Sheets("analysis").Cells(k, z)
+            Next k
+            p = p + 1
+            End If
+                    Next z
+                 Sheets("analysis").Cells(80, p) = Sheets("analysis").Cells(80, 20)
+                 Sheets("analysis").Cells(80, p + 1) = Sheets("analysis").Cells(80, 21)
+                For k = 81 To pif
+                        Sheets("analysis").Cells(k, p) = Sheets("analysis").Cells(k, 20)
+                        Sheets("analysis").Cells(k, p + 1) = Sheets("analysis").Cells(k, 21) 'This is puting in lateral length
+                Next k
+        Set x1 = range(Sheets("analysis").Cells(81, "BR"), Sheets("analysis").Cells(pif, "BR"))
+        Set x2 = range(Sheets("analysis").Cells(81, "BS"), Sheets("analysis").Cells(pif, "BS"))
+        Set x3 = range(Sheets("analysis").Cells(81, "BT"), Sheets("analysis").Cells(pif, "BT"))
+        Set y1 = range(Sheets("analysis").Cells(81, "BU"), Sheets("analysis").Cells(pif, "BU")) 'oil prod
+    Set Rx = Application.Union(x1, x2, x3)
+    
+    vstat = WorksheetFunction.LinEst(y1, Rx, True, True)
+
+
+
+'add dosier variables
+For k = 1 To FracVarstring.count
+
+If (Sheets("analysis").Cells(80, "BR") = FracVarstring.Item(k)) Then
+
+Fracvar1 = FracVariables.Item(k)
+
+
+End If
+
+If (Sheets("analysis").Cells(80, "BS") = FracVarstring.Item(k)) Then
+
+Fracvar2 = FracVariables.Item(k)
+
+
+End If
+
+
+Next k
+
+
+End If
+ 
+ 
+ 
+ 
+ 'THIS IS THE END OF THE THIRTY DAY CUMSECTION
+ 
+ 'THIS IS THE START OF THE 90 DAY CUM PREDICTION
+ If (j = 2) Then
+ p = 70
+ If (Var1D > baseline) Then 'Here I am creating a list in order to find the three most influential variables
+        Linearregression.Add (1)
+    Else
+        Linearregression.Add (0)
+    End If
+    If (Var2D > baseline) Then
+        Linearregression.Add (1)
+    Else
+        Linearregression.Add (0)
+    End If
+    If (Var3D > baseline) Then
+        Linearregression.Add (1)
+    Else
+        Linearregression.Add (0)
+    End If
+        Linearregression.Add (1)
+    pif = pif + 2
+    yi = yi - 2
+ 
+ 
+ 
+  For z = 13 To 19
+        If (Sheets("analysis").Cells(80, z) = Var1S And Linearregression.Item(1) <> 0) Then
+            Sheets("analysis").Cells(pif - 1, p) = Sheets("analysis").Cells(80, z)
+            For k = pif To yi
+               Sheets("analysis").Cells(k, p) = Sheets("analysis").Cells(k, z)
+            Next k
+            p = p + 1
+        End If
+        If (Sheets("analysis").Cells(80, z) = Var2S And Linearregression.Item(2) <> 0) Then
+            Sheets("analysis").Cells(pif - 1, p) = Sheets("analysis").Cells(80, z)
+            For k = pif To yi
+                Sheets("analysis").Cells(k, p) = Sheets("analysis").Cells(k, z)
+            Next k
+            p = p + 1
+            End If
+        If (Sheets("analysis").Cells(80, z) = Var3S And Linearregression.Item(3) <> 0) Then
+            Sheets("analysis").Cells(pif - 1, p) = Sheets("analysis").Cells(80, z)
+            For k = pif To yi
+                Sheets("analysis").Cells(k, p) = Sheets("analysis").Cells(k, z)
+            Next k
+            p = p + 1
+            End If
+                    Next z
+            Sheets("analysis").Cells(pif - 1, p) = Sheets("analysis").Cells(80, 20)
+            Sheets("analysis").Cells(pif - 1, p + 1) = Sheets("analysis").Cells(80, 21)
+        For k = pif To yi
+            Sheets("analysis").Cells(k, p) = Sheets("analysis").Cells(k, 20)
+            Sheets("analysis").Cells(k, p + 1) = Sheets("analysis").Cells(k, 21) 'This is puting in lateral length
+        Next k
+ 
+ Set x1 = range(Sheets("analysis").Cells(pif, "BR"), Sheets("analysis").Cells(yi, "BR"))
+        Set x2 = range(Sheets("analysis").Cells(pif, "BS"), Sheets("analysis").Cells(yi, "BS"))
+        Set x3 = range(Sheets("analysis").Cells(pif, "BT"), Sheets("analysis").Cells(yi, "BT"))
+        Set y1 = range(Sheets("analysis").Cells(pif, "BU"), Sheets("analysis").Cells(yi, "BU")) 'oil prod
+    Set Rx = Application.Union(x1, x2, x3)
+ 
+  vstat = WorksheetFunction.LinEst(y1, Rx, True, True)
+    For k = 1 To FracVarstring.count
+If (Sheets("analysis").Cells(pif - 1, "BR") = FracVarstring.Item(k)) Then
+Fracvar1 = FracVariables.Item(k)
+End If
+If (Sheets("analysis").Cells(pif - 1, "BS") = FracVarstring.Item(k)) Then
+Fracvar2 = FracVariables.Item(k)
+End If
+    Next k
+ 
+ 
+ End If
+ 
+ ' THIS IS THE END OF 90DAY CUMULATIVE PRODUCTION
+ 
+ 
+ 'This is the start of the 180 cum
+ 
+ 
+  If (j = 3) Then
+ p = 70
+ If (Var1D > baseline) Then 'Here I am creating a list in order to find the three most influential variables
+        Linearregression.Add (1)
+    Else
+        Linearregression.Add (0)
+    End If
+    If (Var2D > baseline) Then
+        Linearregression.Add (1)
+    Else
+        Linearregression.Add (0)
+    End If
+    If (Var3D > baseline) Then
+        Linearregression.Add (1)
+    Else
+        Linearregression.Add (0)
+    End If
+        Linearregression.Add (1)
+    yi = yi + 2
+    zi = zi - 2
+ 
+ 
+ 
+  For z = 13 To 19
+        If (Sheets("analysis").Cells(80, z) = Var1S And Linearregression.Item(1) <> 0) Then
+            Sheets("analysis").Cells(yi - 1, p) = Sheets("analysis").Cells(80, z)
+            For k = yi To zi
+               Sheets("analysis").Cells(k, p) = Sheets("analysis").Cells(k, z)
+            Next k
+            p = p + 1
+        End If
+        If (Sheets("analysis").Cells(80, z) = Var2S And Linearregression.Item(2) <> 0) Then
+            Sheets("analysis").Cells(yi - 1, p) = Sheets("analysis").Cells(80, z)
+            For k = yi To zi
+                Sheets("analysis").Cells(k, p) = Sheets("analysis").Cells(k, z)
+            Next k
+            p = p + 1
+            End If
+        If (Sheets("analysis").Cells(80, z) = Var3S And Linearregression.Item(3) <> 0) Then
+            Sheets("analysis").Cells(yi - 1, p) = Sheets("analysis").Cells(80, z)
+            For k = yi To zi
+                Sheets("analysis").Cells(k, p) = Sheets("analysis").Cells(k, z)
+            Next k
+            p = p + 1
+            End If
+                    Next z
+            Sheets("analysis").Cells(yi - 1, p) = Sheets("analysis").Cells(80, 20)
+            Sheets("analysis").Cells(yi - 1, p + 1) = Sheets("analysis").Cells(80, 21)
+        For k = yi To zi
+            Sheets("analysis").Cells(k, p) = Sheets("analysis").Cells(k, 20)
+            Sheets("analysis").Cells(k, p + 1) = Sheets("analysis").Cells(k, 21) 'This is puting in lateral length
+        Next k
+ 
+        Set x1 = range(Sheets("analysis").Cells(yi, "BR"), Sheets("analysis").Cells(zi, "BR"))
+        Set x2 = range(Sheets("analysis").Cells(yi, "BS"), Sheets("analysis").Cells(zi, "BS"))
+        Set x3 = range(Sheets("analysis").Cells(yi, "BT"), Sheets("analysis").Cells(zi, "BT"))
+        Set y1 = range(Sheets("analysis").Cells(yi, "BU"), Sheets("analysis").Cells(zi, "BU")) 'oil prod
+         Set Rx = Application.Union(x1, x2, x3)
+ 
+        vstat = WorksheetFunction.LinEst(y1, Rx, True, True)
+    For k = 1 To FracVarstring.count
+If (Sheets("analysis").Cells(yi - 1, "BR") = FracVarstring.Item(k)) Then
+Fracvar1 = FracVariables.Item(k)
+End If
+If (Sheets("analysis").Cells(yi - 1, "BS") = FracVarstring.Item(k)) Then
+Fracvar2 = FracVariables.Item(k)
+End If
+    Next k
+ 
+ 
+ End If
+ 
+ 
+ 'THIS IS THE END OF THE 180 DAY CUMS
+ 
+ 'THIS IS THE STAT OR THE 365 DAY CUMS
+ 
+ If (j = 4) Then
+ p = 70
+ If (Var1D > baseline) Then 'Here I am creating a list in order to find the three most influential variables
+        Linearregression.Add (1)
+    Else
+        Linearregression.Add (0)
+    End If
+    If (Var2D > baseline) Then
+        Linearregression.Add (1)
+    Else
+        Linearregression.Add (0)
+    End If
+    If (Var3D > baseline) Then
+        Linearregression.Add (1)
+    Else
+        Linearregression.Add (0)
+    End If
+        Linearregression.Add (1)
+    zi = zi + 2
+    'Dont need to declare xi since it already is the end of the formation list
+ 
+ 
+ 
+  For z = 13 To 19
+        If (Sheets("analysis").Cells(80, z) = Var1S And Linearregression.Item(1) <> 0) Then
+            Sheets("analysis").Cells(zi - 1, p) = Sheets("analysis").Cells(80, z)
+            For k = zi To xi
+               Sheets("analysis").Cells(k, p) = Sheets("analysis").Cells(k, z)
+            Next k
+            p = p + 1
+        End If
+        If (Sheets("analysis").Cells(80, z) = Var2S And Linearregression.Item(2) <> 0) Then
+            Sheets("analysis").Cells(zi - 1, p) = Sheets("analysis").Cells(80, z)
+            For k = zi To xi
+                Sheets("analysis").Cells(k, p) = Sheets("analysis").Cells(k, z)
+            Next k
+            p = p + 1
+            End If
+        If (Sheets("analysis").Cells(80, z) = Var3S And Linearregression.Item(3) <> 0) Then
+            Sheets("analysis").Cells(zi - 1, p) = Sheets("analysis").Cells(80, z)
+            For k = zi To xi
+                Sheets("analysis").Cells(k, p) = Sheets("analysis").Cells(k, z)
+            Next k
+            p = p + 1
+            End If
+                    Next z
+            
+        Sheets("analysis").Cells(zi - 1, p) = Sheets("analysis").Cells(80, 20)
+        Sheets("analysis").Cells(zi - 1, p + 1) = Sheets("analysis").Cells(80, 21)
+        For k = zi To xi
+            Sheets("analysis").Cells(k, p) = Sheets("analysis").Cells(k, 20)
+            Sheets("analysis").Cells(k, p + 1) = Sheets("analysis").Cells(k, 21) 'This is puting in lateral length
+        Next k
+ 
+        Set x1 = range(Sheets("analysis").Cells(zi, "BR"), Sheets("analysis").Cells(xi, "BR"))
+        Set x2 = range(Sheets("analysis").Cells(zi, "BS"), Sheets("analysis").Cells(xi, "BS"))
+        Set x3 = range(Sheets("analysis").Cells(zi, "BT"), Sheets("analysis").Cells(xi, "BT"))
+        Set y1 = range(Sheets("analysis").Cells(zi, "BU"), Sheets("analysis").Cells(xi, "BU")) 'oil prod
+         Set Rx = Application.Union(x1, x2, x3)
+ 
+        vstat = WorksheetFunction.LinEst(y1, Rx, True, True)
+    For k = 1 To FracVarstring.count
+If (Sheets("analysis").Cells(zi - 1, "BR") = FracVarstring.Item(k)) Then
+Fracvar1 = FracVariables.Item(k)
+End If
+If (Sheets("analysis").Cells(zi - 1, "BS") = FracVarstring.Item(k)) Then
+Fracvar2 = FracVariables.Item(k)
+End If
+    Next k
+ 
+ 
+ End If
+ 
+ 
+ 
+ intercept = Fracvar1 * vstat(1, 3) + Fracvar2 * vstat(1, 2) + vstat(1, 4)
+ slope = vstat(1, 1)
+ r = vstat(3, 1)
+ 
+ 
+ Sheets("analysis").Cells(j + 34, "G") = (slope * 7500 + intercept) / (slope * 5280 + intercept)
+ Sheets("analysis").Cells(j + 34, "H") = (slope * 10000 + intercept) / (slope * 5280 + intercept)
+  Sheets("analysis").Cells(j + 34, "I") = r
+ 
+ 'Here is where I need to add in the calculations
+    y = y + 2
+    zj = zj + 2
+
+
+
+Next j
+
+
+
+'***********************************************************************************************************************
+
+Sheets("analysis").range("CA1:CF200").Clear
+
+
+
+y = 1
+
+For i = 1 To well_formation_list.count
+If (well_formation_list.Item(i).spacing <> 0) Then
+
+Sheets("analysis").Cells(y, "CA") = well_formation_list.Item(i).name
+Sheets("analysis").Cells(y, "CB") = well_formation_list.Item(i).spacing
+Sheets("analysis").Cells(y, "CC") = well_formation_list.Item(i).Oil_365
+y = y + 1
+
+End If
+
+Next i
+
+
+y = 1
+
+For i = 1 To well_list.count
+
+If (well_list.Item(i).spacing <> 0) Then
+
+Sheets("analysis").Cells(y, "CD") = well_list.Item(i).name
+Sheets("analysis").Cells(y, "CE") = well_list.Item(i).spacing
+Sheets("analysis").Cells(y, "CF") = well_list.Item(i).Oil_365
+y = y + 1
+
+End If
+
+Next i
+
+
+
+Done: Exit Sub
+eh:
+
+MsgBox "You had no wells in that formation use an analgous formation"
+Exit Sub
+ 
+ 
+            
+
+End Sub
