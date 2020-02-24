@@ -1,0 +1,65 @@
+
+Private Sub Image1_BeforeDragOver(ByVal Cancel As MSForms.ReturnBoolean, ByVal Data As MSForms.DataObject, ByVal x As Single, ByVal y As Single, ByVal DragState As MSForms.fmDragState, ByVal Effect As MSForms.ReturnEffect, ByVal Shift As Integer)
+
+End Sub
+
+Private Sub TextBox1_Change()
+
+Dim Lquote As String
+Dim lcase As Integer
+lcase = ((10 - 1 + 1) * Rnd + 1)
+Select Case lcase
+
+Case 1
+
+Lquote = "Loading...."
+
+Case 2
+Lquote = "Maximizing Lunch Break...."
+
+Case 3
+
+Lquote = "Adjusting Chair Height...."
+Case 4
+Lquote = "Communing with Nature...."
+Case 5
+Lquote = "Remembering Other Work...."
+Case 6
+Lquote = "Gaining Consciousness.... "
+Case 7
+Lquote = "Stoking Belly fire...."
+Case 8
+Lquote = "Premiering..."
+Case 9
+Lquote = "Still Loading...."
+Case 10
+Lquote = "Conjuring Numbers...."
+Case 11
+Lquote = "K"
+End Select
+
+'Lquote = "Loading..."
+
+'TextBox1.Text = Lquote
+
+
+End Sub
+
+Private Sub Label1_Click()
+
+End Sub
+
+Private Sub UserForm_Activate()
+    Me.StartUpPosition = 0
+    Me.Top = Application.Top + 100
+    Me.Left = Application.Left + Application.width - Me.width - 750
+
+
+
+
+Call TextBox1_Change
+
+
+
+
+End Sub
